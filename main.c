@@ -3,11 +3,14 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <errno.h>
+#include <bsd/string.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
 #include <pwd.h>
+
+// Plik należy kompilować przy użyciu flagi -lbsd
 
 struct executedCommand {
   int optionsNum;
@@ -23,6 +26,7 @@ struct myFileStats {
   int modificationHour;
   int modificationMinutes;
   char* userOwner;
+  char permissions[11];
 };
 
 void determineIfPathToDirIsPassed(int passedArgumentsCount, char* lastPassedOption, struct executedCommand* commandInfo) {
@@ -133,6 +137,7 @@ void convertFileModificationTime(struct stat* stats, struct myFileStats* fileSta
 
 void convertStatsAboutFile(struct stat* stats, struct myFileStats* fileStats) {
   fileStats->size = stats->st_size;
+  strmode(stats->st_mode, fileStats->permissions);
   // convertFileUserOwner(stats, fileStats);
   convertFileModificationTime(stats, fileStats);
 }
@@ -150,7 +155,7 @@ void logDetailedInfoAboutFile(struct dirent* pDirEnt) {
 
   // printf("%10s %8ld %s %02d %02d:%02d ", fileStats.userOwner, fileStats.size, fileStats.modificationMonth, 
   //   fileStats.modificationDay, fileStats.modificationHour, fileStats.modificationMinutes);
-  printf("%8ld %s %02d %02d:%02d ", fileStats.size, fileStats.modificationMonth, 
+  printf("%s %8ld %s %02d %02d:%02d ", fileStats.permissions, fileStats.size, fileStats.modificationMonth, 
     fileStats.modificationDay, fileStats.modificationHour, fileStats.modificationMinutes);
   freeFileStats(&fileStats);
 }
