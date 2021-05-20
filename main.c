@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
+#include <pwd.h>
 
 struct executedCommand {
   int optionsNum;
@@ -21,6 +22,7 @@ struct myFileStats {
   int modificationDay;
   int modificationHour;
   int modificationMinutes;
+  char* userOwner;
 };
 
 void determineIfPathToDirIsPassed(int passedArgumentsCount, char* lastPassedOption, struct executedCommand* commandInfo) {
@@ -105,21 +107,16 @@ bool doesStringContainChar(char* string, char a) {
   return false;
 }
 
+void convertFileUserOwner(struct stat* stats, struct myFileStats* fileStats) {
+  struct passwd *pwd;
+  pwd = getpwuid(stats->st_uid);
+  fileStats->userOwner = malloc(sizeof(char) * strlen(pwd->pw_name) + 1);
+  strncpy(fileStats->userOwner, pwd->pw_name, strlen(pwd->pw_name) + 1);
+}
+
 void convertFileModifiactionMonthToString(struct myFileStats* fileStats, int monthNum) {
-  switch(monthNum) {
-    case 0: strncpy(fileStats->modificationMonth, "Jan", 3); break;
-    case 1: strncpy(fileStats->modificationMonth, "Feb", 3); break;
-    case 2: strncpy(fileStats->modificationMonth, "Mar", 3); break;
-    case 3: strncpy(fileStats->modificationMonth, "Apr", 3); break;
-    case 4: strncpy(fileStats->modificationMonth, "May", 3); break;
-    case 5: strncpy(fileStats->modificationMonth, "Jun", 3); break;
-    case 6: strncpy(fileStats->modificationMonth, "Jul", 3); break;
-    case 7: strncpy(fileStats->modificationMonth, "Aug", 3); break;
-    case 8: strncpy(fileStats->modificationMonth, "Sep", 3); break;
-    case 9: strncpy(fileStats->modificationMonth, "Oct", 3); break;
-    case 10: strncpy(fileStats->modificationMonth, "Nov", 3); break;
-    case 11: strncpy(fileStats->modificationMonth, "Dec", 3); break;
-  }
+  char months[12][4] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"};
+  strncpy(fileStats->modificationMonth, months[monthNum], 3);
 
   fileStats->modificationMonth[3] = '\0';
 }
@@ -136,7 +133,12 @@ void convertFileModificationTime(struct stat* stats, struct myFileStats* fileSta
 
 void convertStatsAboutFile(struct stat* stats, struct myFileStats* fileStats) {
   fileStats->size = stats->st_size;
+  // convertFileUserOwner(stats, fileStats);
   convertFileModificationTime(stats, fileStats);
+}
+
+void freeFileStats(struct myFileStats* fileStats) {
+  // free(fileStats->userOwner);
 }
 
 void logDetailedInfoAboutFile(struct dirent* pDirEnt) {
@@ -146,8 +148,11 @@ void logDetailedInfoAboutFile(struct dirent* pDirEnt) {
   stat(pDirEnt->d_name, &stats);
   convertStatsAboutFile(&stats, &fileStats);
 
-  printf("%8ld %s %02d %02d:%02d ", fileStats.size, fileStats.modificationMonth, fileStats.modificationDay, 
-    fileStats.modificationHour, fileStats.modificationMinutes);
+  // printf("%10s %8ld %s %02d %02d:%02d ", fileStats.userOwner, fileStats.size, fileStats.modificationMonth, 
+  //   fileStats.modificationDay, fileStats.modificationHour, fileStats.modificationMinutes);
+  printf("%8ld %s %02d %02d:%02d ", fileStats.size, fileStats.modificationMonth, 
+    fileStats.modificationDay, fileStats.modificationHour, fileStats.modificationMinutes);
+  freeFileStats(&fileStats);
 }
 
 void logInfoAboutFile(struct executedCommand* commandInfo, struct dirent* pDirEnt) {
