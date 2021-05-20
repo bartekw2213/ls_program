@@ -88,13 +88,35 @@ void logDirectoryName(char* dirName) {
   printf("\033[0m:\n");
 }
 
+bool doesStringContainChar(char* string, char a) {
+  size_t upperBound = strlen(string);
+  for(size_t i = 0; i < upperBound; i++)
+    if(string[i] == a)
+      return true;
+  return false;
+}
+
+void logDetailedInfoAboutFile(struct dirent* pDirEnt) {
+  struct stat fileStats;
+  stat(pDirEnt->d_name, &fileStats);
+
+  printf("%ld ", fileStats.st_size);
+}
+
+void logInfoAboutFile(struct executedCommand* commandInfo, struct dirent* pDirEnt) {
+  if(doesStringContainChar(commandInfo->options, 'l'))
+    logDetailedInfoAboutFile(pDirEnt);
+
+  printf("%s\n", pDirEnt->d_name);
+}
+
 void logInfoAboutEachFileInDir(struct executedCommand* commandInfo, DIR **pDirectory) {
   struct dirent *pDirEnt;
 
   pDirEnt = readdir( *pDirectory );
 
   while ( pDirEnt != NULL ) {
-    printf( "%s\n", pDirEnt->d_name);
+    logInfoAboutFile(commandInfo, pDirEnt);
     pDirEnt = readdir( *pDirectory );
   }
 
