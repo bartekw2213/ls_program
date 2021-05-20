@@ -83,6 +83,11 @@ void openCorrectDirectory(DIR **pDirectory, char* pathToDir) {
   }
 }
 
+void logDirectoryName(char* dirName) {
+  printf("\033[33m%s", dirName);
+  printf("\033[0m:\n");
+}
+
 void logInfoAboutEachFileInDir(struct executedCommand* commandInfo, DIR **pDirectory) {
   struct dirent *pDirEnt;
 
@@ -100,6 +105,7 @@ void logDirectoryContent(struct executedCommand* commandInfo, char* pathToDir) {
   DIR *pDirectory;
 
   openCorrectDirectory(&pDirectory, pathToDir);
+  logDirectoryName(pathToDir);
   logInfoAboutEachFileInDir(commandInfo, &pDirectory);
   
   closedir(pDirectory);
