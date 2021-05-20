@@ -6,12 +6,21 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <time.h>
 
 struct executedCommand {
   int optionsNum;
   char* options;
   bool isPathToDirPassed;
   char* pathToDir;
+};
+
+struct myFileStats {
+  long int size;
+  char modificationMonth[4];
+  int modificationDay;
+  int modificationHour;
+  int modificationMinutes;
 };
 
 void determineIfPathToDirIsPassed(int passedArgumentsCount, char* lastPassedOption, struct executedCommand* commandInfo) {
@@ -96,11 +105,49 @@ bool doesStringContainChar(char* string, char a) {
   return false;
 }
 
-void logDetailedInfoAboutFile(struct dirent* pDirEnt) {
-  struct stat fileStats;
-  stat(pDirEnt->d_name, &fileStats);
+void convertFileModifiactionMonthToString(struct myFileStats* fileStats, int monthNum) {
+  switch(monthNum) {
+    case 0: strncpy(fileStats->modificationMonth, "Jan", 3); break;
+    case 1: strncpy(fileStats->modificationMonth, "Feb", 3); break;
+    case 2: strncpy(fileStats->modificationMonth, "Mar", 3); break;
+    case 3: strncpy(fileStats->modificationMonth, "Apr", 3); break;
+    case 4: strncpy(fileStats->modificationMonth, "May", 3); break;
+    case 5: strncpy(fileStats->modificationMonth, "Jun", 3); break;
+    case 6: strncpy(fileStats->modificationMonth, "Jul", 3); break;
+    case 7: strncpy(fileStats->modificationMonth, "Aug", 3); break;
+    case 8: strncpy(fileStats->modificationMonth, "Sep", 3); break;
+    case 9: strncpy(fileStats->modificationMonth, "Oct", 3); break;
+    case 10: strncpy(fileStats->modificationMonth, "Nov", 3); break;
+    case 11: strncpy(fileStats->modificationMonth, "Dec", 3); break;
+  }
 
-  printf("%ld ", fileStats.st_size);
+  fileStats->modificationMonth[3] = '\0';
+}
+
+void convertFileModificationTime(struct stat* stats, struct myFileStats* fileStats) {
+  struct timespec ts = stats->st_mtim;    
+  struct tm *timeInfo = localtime(&ts.tv_sec);
+
+  fileStats->modificationDay = timeInfo->tm_mday;
+  fileStats->modificationHour = timeInfo->tm_hour;
+  fileStats->modificationMinutes = timeInfo->tm_min;
+  convertFileModifiactionMonthToString(fileStats, timeInfo->tm_mon);
+}
+
+void convertStatsAboutFile(struct stat* stats, struct myFileStats* fileStats) {
+  fileStats->size = stats->st_size;
+  convertFileModificationTime(stats, fileStats);
+}
+
+void logDetailedInfoAboutFile(struct dirent* pDirEnt) {
+  struct stat stats;
+  struct myFileStats fileStats;
+
+  stat(pDirEnt->d_name, &stats);
+  convertStatsAboutFile(&stats, &fileStats);
+
+  printf("%8ld %s %02d %02d:%02d ", fileStats.size, fileStats.modificationMonth, fileStats.modificationDay, 
+    fileStats.modificationHour, fileStats.modificationMinutes);
 }
 
 void logInfoAboutFile(struct executedCommand* commandInfo, struct dirent* pDirEnt) {
