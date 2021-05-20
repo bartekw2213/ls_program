@@ -7,30 +7,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-// int main( int argc, char *argv[] ) {
-//   DIR *pDIR;
-//   struct dirent *pDirEnt;
-//   struct stat fileStat;
-//   pDIR = opendir(".");
-
-//   if ( pDIR == NULL ) {
-//     fprintf( stderr, "%s %d: opendir() failed (%s)\n", __FILE__, __LINE__, strerror( errno ));
-//     exit( -1 );
-//   }
-
-//   pDirEnt = readdir( pDIR );
-
-//   while ( pDirEnt != NULL ) {
-//     //  printf( "%s %i\n", pDirEnt->d_name, pDirEnt->d_reclen );
-//     stat(pDirEnt->d_name, &fileStat);
-//     printf( "%s %ld\n", pDirEnt->d_name, fileStat.st_size);
-//     pDirEnt = readdir( pDIR );
-//   }
-
-//   closedir( pDIR );
-//   return 0;
-// }
-
 struct executedCommand {
   int optionsNum;
   char* options;
@@ -98,7 +74,38 @@ void getCommandInfoData(int argc, char *argv[], struct executedCommand* commandI
   getOptions(argc, argv, commandInfo);
 }
 
-void freeExecutedCommandStructure(struct executedCommand* commandInfo) {
+void openCorrectDirectory(DIR **pDirectory, char* pathToDir) {
+  *pDirectory = opendir(pathToDir);
+
+  if ( *pDirectory == NULL ) {
+    fprintf( stderr, "%s %d: opendir() failed (%s)\n", __FILE__, __LINE__, strerror( errno ));
+    exit( -1 );
+  }
+}
+
+void logInfoAboutEachFileInDir(struct executedCommand* commandInfo, DIR **pDirectory) {
+  struct dirent *pDirEnt;
+
+  pDirEnt = readdir( *pDirectory );
+
+  while ( pDirEnt != NULL ) {
+    printf( "%s\n", pDirEnt->d_name);
+    pDirEnt = readdir( *pDirectory );
+  }
+
+  printf("\n");
+}
+
+void logDirectoryContent(struct executedCommand* commandInfo, char* pathToDir) {
+  DIR *pDirectory;
+
+  openCorrectDirectory(&pDirectory, pathToDir);
+  logInfoAboutEachFileInDir(commandInfo, &pDirectory);
+  
+  closedir(pDirectory);
+}
+
+void freeCommandInfo(struct executedCommand* commandInfo) {
   free(commandInfo->options);
   free(commandInfo->pathToDir);
 }
@@ -107,6 +114,13 @@ int main( int argc, char *argv[] ) {
   struct executedCommand commandInfo = {0 , NULL, false, NULL};
 
   getCommandInfoData(argc, argv, &commandInfo);
+
+  if(commandInfo.isPathToDirPassed) {
+    logDirectoryContent(&commandInfo, commandInfo.pathToDir);
+  } else {
+    logDirectoryContent(&commandInfo, ".");
+  }
+
   freeCommandInfo(&commandInfo);
 }
 
