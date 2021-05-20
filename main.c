@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <grp.h>
 #include <dirent.h>
 #include <errno.h>
 #include <bsd/string.h>
@@ -26,6 +27,7 @@ struct myFileStats {
   int modificationHour;
   int modificationMinutes;
   char* userOwner;
+  char *groupOwner;
   char permissions[11];
 };
 
@@ -114,8 +116,25 @@ bool doesStringContainChar(char* string, char a) {
 void convertFileUserOwner(struct stat* stats, struct myFileStats* fileStats) {
   struct passwd *pwd;
   pwd = getpwuid(stats->st_uid);
-  fileStats->userOwner = malloc(sizeof(char) * strlen(pwd->pw_name) + 1);
-  strncpy(fileStats->userOwner, pwd->pw_name, strlen(pwd->pw_name) + 1);
+  if(pwd == NULL) {
+    fileStats->userOwner = malloc(sizeof(char) * 2);
+    strncpy(fileStats->userOwner, "?", 2);
+  } else {
+    fileStats->userOwner = malloc(sizeof(char) * strlen(pwd->pw_name) + 1);
+    strncpy(fileStats->userOwner, pwd->pw_name, strlen(pwd->pw_name) + 1);
+  }
+}
+
+void convertFileGroupOwner(struct stat* stats, struct myFileStats* fileStats) {
+  struct group *pg;
+  pg = getgrgid(stats->st_gid);
+  if(pg == NULL) {
+    fileStats->groupOwner = malloc(sizeof(char) * 2);
+    strncpy(fileStats->groupOwner, "?", 2);
+  } else {
+    fileStats->groupOwner = malloc(sizeof(char) * strlen(pg->gr_name) + 1);
+    strncpy(fileStats->groupOwner, pg->gr_name, strlen(pg->gr_name) + 1);
+  }
 }
 
 void convertFileModifiactionMonthToString(struct myFileStats* fileStats, int monthNum) {
@@ -138,12 +157,14 @@ void convertFileModificationTime(struct stat* stats, struct myFileStats* fileSta
 void convertStatsAboutFile(struct stat* stats, struct myFileStats* fileStats) {
   fileStats->size = stats->st_size;
   strmode(stats->st_mode, fileStats->permissions);
-  // convertFileUserOwner(stats, fileStats);
+  convertFileUserOwner(stats, fileStats);
+  convertFileGroupOwner(stats, fileStats);
   convertFileModificationTime(stats, fileStats);
 }
 
 void freeFileStats(struct myFileStats* fileStats) {
-  // free(fileStats->userOwner);
+  free(fileStats->userOwner);
+  free(fileStats->groupOwner);
 }
 
 void logDetailedInfoAboutFile(struct dirent* pDirEnt) {
@@ -153,10 +174,10 @@ void logDetailedInfoAboutFile(struct dirent* pDirEnt) {
   stat(pDirEnt->d_name, &stats);
   convertStatsAboutFile(&stats, &fileStats);
 
-  // printf("%10s %8ld %s %02d %02d:%02d ", fileStats.userOwner, fileStats.size, fileStats.modificationMonth, 
-  //   fileStats.modificationDay, fileStats.modificationHour, fileStats.modificationMinutes);
-  printf("%s %8ld %s %02d %02d:%02d ", fileStats.permissions, fileStats.size, fileStats.modificationMonth, 
-    fileStats.modificationDay, fileStats.modificationHour, fileStats.modificationMinutes);
+  printf("%s %10s %10s %10ld %s %02d %02d:%02d ", fileStats.permissions, fileStats.userOwner, fileStats.groupOwner,
+    fileStats.size, fileStats.modificationMonth, fileStats.modificationDay, fileStats.modificationHour, 
+    fileStats.modificationMinutes);
+
   freeFileStats(&fileStats);
 }
 
