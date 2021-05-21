@@ -204,24 +204,21 @@ void logContentIfThisFileIsDirectory(struct executedCommand* commandInfo, struct
     logDirectoryContent(commandInfo, pathToFile);
 }
 
-void logInfoAboutFile(struct executedCommand* commandInfo, struct dirent* pDirEnt, char* pathToDir) {
+void logInfoAboutFile(struct executedCommand* commandInfo, struct dirent* pDirEnt) {
   if(strcmp(pDirEnt->d_name, ".") == 0 || strcmp(pDirEnt->d_name, "..") == 0)
     return;
 
   if(commandInfo->optionsNum > 0 && doesStringContainChar(commandInfo->options, 'l'))
     logDetailedInfoAboutFile(pDirEnt);
   printf("%s\n", pDirEnt->d_name);
-
-  // if(commandInfo->optionsNum > 0 && doesStringContainChar(commandInfo->options, 'R'))
-  //   logContentIfThisFileIsDirectory(commandInfo, pDirEnt, pathToDir);
 }
 
-void logInfoAboutEachFileInDir(struct executedCommand* commandInfo, DIR **pDirectory, char* pathToDir) {
+void logInfoAboutEachFileInDir(struct executedCommand* commandInfo, DIR **pDirectory) {
   struct dirent *pDirEnt;
   pDirEnt = readdir( *pDirectory );
 
   while ( pDirEnt != NULL ) {
-    logInfoAboutFile(commandInfo, pDirEnt, pathToDir);
+    logInfoAboutFile(commandInfo, pDirEnt);
     pDirEnt = readdir( *pDirectory );
   }
 
@@ -229,8 +226,7 @@ void logInfoAboutEachFileInDir(struct executedCommand* commandInfo, DIR **pDirec
 }
 
 void logNestedDirectoriesContentIfNeeded(struct executedCommand* commandInfo, DIR **pDirectory, char* pathToDir) {
-  if(pathToDir[strlen(pathToDir) - 1] == '.' || commandInfo->optionsNum == 0 || 
-    !doesStringContainChar(commandInfo->options, 'R'))
+  if(commandInfo->optionsNum == 0 || !doesStringContainChar(commandInfo->options, 'R'))
     return;
 
   struct dirent *pDirEnt;
@@ -247,7 +243,7 @@ void logDirectoryContent(struct executedCommand* commandInfo, char* pathToDir) {
 
   openCorrectDirectory(&pDirectory, pathToDir);
   logDirectoryName(pathToDir);
-  logInfoAboutEachFileInDir(commandInfo, &pDirectory, pathToDir);
+  logInfoAboutEachFileInDir(commandInfo, &pDirectory);
   closedir(pDirectory);
 
   openCorrectDirectory(&pDirectory, pathToDir);
