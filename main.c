@@ -176,18 +176,20 @@ void logDetailedInfoAboutFile(struct dirent* pDirEnt) {
   stat(pDirEnt->d_name, &stats);
   convertStatsAboutFile(&stats, &fileStats);
 
-  printf("%s %2i %10s %10s %10ld %s %02d %02d:%02d ", fileStats.permissions, fileStats.links, fileStats.userOwner, 
+  printf("%s %8i %10s %10s %10ld %s %02d %02d:%02d %s\n", fileStats.permissions, fileStats.links, fileStats.userOwner, 
     fileStats.groupOwner,fileStats.size, fileStats.modificationMonth, fileStats.modificationDay, 
-    fileStats.modificationHour, fileStats.modificationMinutes);
+    fileStats.modificationHour, fileStats.modificationMinutes, pDirEnt->d_name);
 
   freeFileStats(&fileStats);
 }
 
 void logInfoAboutFile(struct executedCommand* commandInfo, struct dirent* pDirEnt) {
-  if(doesStringContainChar(commandInfo->options, 'l'))
+  if(commandInfo->optionsNum > 0 && doesStringContainChar(commandInfo->options, 'l'))
     logDetailedInfoAboutFile(pDirEnt);
-
-  printf("%s\n", pDirEnt->d_name);
+  if(commandInfo->optionsNum > 0 && doesStringContainChar(commandInfo->options, 'R'))
+    logDirectoryContent(commandInfo, pDirEnt->d_name);
+  if(commandInfo->optionsNum == 0)
+    printf("%s\n", pDirEnt->d_name);
 }
 
 void logInfoAboutEachFileInDir(struct executedCommand* commandInfo, DIR **pDirectory) {
