@@ -32,6 +32,8 @@ struct myFileStats {
   char permissions[11];
 };
 
+void logDirectoryContent(struct executedCommand* commandInfo, char* pathToDir);
+
 void determineIfPathToDirIsPassed(int passedArgumentsCount, char* lastPassedOption, struct executedCommand* commandInfo) {
   if(passedArgumentsCount > 1 && (lastPassedOption[0] == '.' || lastPassedOption[0] == '/'))
     commandInfo->isPathToDirPassed = true;
@@ -176,33 +178,68 @@ void logDetailedInfoAboutFile(struct dirent* pDirEnt) {
   stat(pDirEnt->d_name, &stats);
   convertStatsAboutFile(&stats, &fileStats);
 
-  printf("%s %8i %10s %10s %10ld %s %02d %02d:%02d %s\n", fileStats.permissions, fileStats.links, fileStats.userOwner, 
+  printf("%s %8i %10s %10s %10ld %s %02d %02d:%02d ", fileStats.permissions, fileStats.links, fileStats.userOwner, 
     fileStats.groupOwner,fileStats.size, fileStats.modificationMonth, fileStats.modificationDay, 
-    fileStats.modificationHour, fileStats.modificationMinutes, pDirEnt->d_name);
+    fileStats.modificationHour, fileStats.modificationMinutes);
 
   freeFileStats(&fileStats);
 }
 
-void logInfoAboutFile(struct executedCommand* commandInfo, struct dirent* pDirEnt) {
-  if(commandInfo->optionsNum > 0 && doesStringContainChar(commandInfo->options, 'l'))
-    logDetailedInfoAboutFile(pDirEnt);
-  if(commandInfo->optionsNum > 0 && doesStringContainChar(commandInfo->options, 'R'))
-    logDirectoryContent(commandInfo, pDirEnt->d_name);
-  if(commandInfo->optionsNum == 0)
-    printf("%s\n", pDirEnt->d_name);
+char* createPathToFile(char* fileName, char* pathToDirectory) {
+  char* fullPath = malloc(sizeof(char) * (strlen(fileName) + strlen(pathToDirectory) + 2));
+  strncpy(fullPath, pathToDirectory, strlen(pathToDirectory) + 1);
+  strcat(fullPath, "/");
+  strcat(fullPath, fileName);
+
+  return fullPath;
 }
 
-void logInfoAboutEachFileInDir(struct executedCommand* commandInfo, DIR **pDirectory) {
-  struct dirent *pDirEnt;
+void logContentIfThisFileIsDirectory(struct executedCommand* commandInfo, struct dirent* pDirEnt, char* pathToParentDir) {
+  char* pathToFile = createPathToFile(pDirEnt->d_name, pathToParentDir);
 
+  struct stat stats;
+  stat(pathToFile, &stats);
+  
+  if(S_ISDIR(stats.st_mode) && pathToFile[strlen(pathToFile) - 1] != '.')
+    logDirectoryContent(commandInfo, pathToFile);
+}
+
+void logInfoAboutFile(struct executedCommand* commandInfo, struct dirent* pDirEnt, char* pathToDir) {
+  if(strcmp(pDirEnt->d_name, ".") == 0 || strcmp(pDirEnt->d_name, "..") == 0)
+    return;
+
+  if(commandInfo->optionsNum > 0 && doesStringContainChar(commandInfo->options, 'l'))
+    logDetailedInfoAboutFile(pDirEnt);
+  printf("%s\n", pDirEnt->d_name);
+
+  // if(commandInfo->optionsNum > 0 && doesStringContainChar(commandInfo->options, 'R'))
+  //   logContentIfThisFileIsDirectory(commandInfo, pDirEnt, pathToDir);
+}
+
+void logInfoAboutEachFileInDir(struct executedCommand* commandInfo, DIR **pDirectory, char* pathToDir) {
+  struct dirent *pDirEnt;
   pDirEnt = readdir( *pDirectory );
 
   while ( pDirEnt != NULL ) {
-    logInfoAboutFile(commandInfo, pDirEnt);
+    logInfoAboutFile(commandInfo, pDirEnt, pathToDir);
     pDirEnt = readdir( *pDirectory );
   }
 
   printf("\n");
+}
+
+void logNestedDirectoriesContentIfNeeded(struct executedCommand* commandInfo, DIR **pDirectory, char* pathToDir) {
+  if(pathToDir[strlen(pathToDir) - 1] == '.' || commandInfo->optionsNum == 0 || 
+    !doesStringContainChar(commandInfo->options, 'R'))
+    return;
+
+  struct dirent *pDirEnt;
+  pDirEnt = readdir( *pDirectory );
+
+  while ( pDirEnt != NULL ) {
+    logContentIfThisFileIsDirectory(commandInfo, pDirEnt, pathToDir);
+    pDirEnt = readdir( *pDirectory );
+  }
 }
 
 void logDirectoryContent(struct executedCommand* commandInfo, char* pathToDir) {
@@ -210,8 +247,11 @@ void logDirectoryContent(struct executedCommand* commandInfo, char* pathToDir) {
 
   openCorrectDirectory(&pDirectory, pathToDir);
   logDirectoryName(pathToDir);
-  logInfoAboutEachFileInDir(commandInfo, &pDirectory);
-  
+  logInfoAboutEachFileInDir(commandInfo, &pDirectory, pathToDir);
+  closedir(pDirectory);
+
+  openCorrectDirectory(&pDirectory, pathToDir);
+  logNestedDirectoriesContentIfNeeded(commandInfo, &pDirectory, pathToDir);
   closedir(pDirectory);
 }
 
