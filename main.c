@@ -26,7 +26,7 @@ struct myFileStats {
   int modificationDay;
   int modificationHour;
   int modificationMinutes;
-  int links;
+  u_int32_t links;
   char* userOwner;
   char *groupOwner;
   char permissions[11];
@@ -159,7 +159,7 @@ void convertFileModificationTime(struct stat* stats, struct myFileStats* fileSta
 
 void convertStatsAboutFile(struct stat* stats, struct myFileStats* fileStats) {
   fileStats->size = stats->st_size;
-  fileStats->links = stats->st_nlink;
+  fileStats->links = (u_int32_t)stats->st_nlink;
   strmode(stats->st_mode, fileStats->permissions);
   convertFileUserOwner(stats, fileStats);
   convertFileGroupOwner(stats, fileStats);
@@ -178,7 +178,7 @@ void logDetailedInfoAboutFile(struct dirent* pDirEnt) {
   stat(pDirEnt->d_name, &stats);
   convertStatsAboutFile(&stats, &fileStats);
 
-  printf("%s %8i %10s %10s %10ld %s %02d %02d:%02d ", fileStats.permissions, fileStats.links, fileStats.userOwner, 
+  printf("%s %8u %10s %10s %10ld %s %02d %02d:%02d ", fileStats.permissions, fileStats.links, fileStats.userOwner, 
     fileStats.groupOwner,fileStats.size, fileStats.modificationMonth, fileStats.modificationDay, 
     fileStats.modificationHour, fileStats.modificationMinutes);
 
