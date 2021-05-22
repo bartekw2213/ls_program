@@ -178,7 +178,7 @@ void logDetailedInfoAboutFile(struct dirent* pDirEnt, char* pathToFile) {
   stat(pathToFile, &stats);
   convertStatsAboutFile(&stats, &fileStats);
 
-  printf("%s %8u %10s %10s %10ld %s %02d %02d:%02d ", fileStats.permissions, fileStats.links, fileStats.userOwner, 
+  printf("%s %3u %10s %10s %10ld %s %02d %02d:%02d ", fileStats.permissions, fileStats.links, fileStats.userOwner, 
     fileStats.groupOwner,fileStats.size, fileStats.modificationMonth, fileStats.modificationDay, 
     fileStats.modificationHour, fileStats.modificationMinutes);
 
