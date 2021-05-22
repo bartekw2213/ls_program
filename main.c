@@ -171,20 +171,35 @@ void freeFileStats(struct myFileStats* fileStats) {
   free(fileStats->groupOwner);
 }
 
-void logDetailedInfoAboutFile(struct dirent* pDirEnt, char* pathToFile, bool showIdAsInt) {
+void logFileUserOwner(struct executedCommand* commandInfo, struct stat* stats, struct myFileStats* fileStats) {
+   if(doesStringContainChar(commandInfo->options, 'n'))
+    printf("%5u ", stats->st_uid);
+  else
+    printf("%10s ", fileStats->userOwner);
+}
+
+void logFileGroupOwner(struct executedCommand* commandInfo, struct stat* stats, struct myFileStats* fileStats) {
+  if(doesStringContainChar(commandInfo->options, 'G'))
+    return;
+  else if(doesStringContainChar(commandInfo->options, 'n'))
+    printf("%5u ", stats->st_gid);
+  else if(doesStringContainChar(commandInfo->options, 'l'))
+    printf("%10s ", fileStats->groupOwner);
+}
+
+void logDetailedInfoAboutFile(struct executedCommand* commandInfo, struct dirent* pDirEnt, char* pathToFile) {
   struct stat stats;
   struct myFileStats fileStats;
 
   stat(pathToFile, &stats);
   convertStatsAboutFile(&stats, &fileStats);
 
-  if(showIdAsInt)
-    printf("%s %3u %5u %5u %10ld %s %02d %02d:%02d ", fileStats.permissions, fileStats.links, stats.st_uid, 
-      stats.st_gid, fileStats.size, fileStats.modificationMonth, fileStats.modificationDay, 
-      fileStats.modificationHour, fileStats.modificationMinutes);
-  else
-    printf("%s %3u %10s %10s %10ld %s %02d %02d:%02d ", fileStats.permissions, fileStats.links, fileStats.userOwner, 
-      fileStats.groupOwner,fileStats.size, fileStats.modificationMonth, fileStats.modificationDay, 
+  printf("%s %3u ", fileStats.permissions, fileStats.links);
+  
+  logFileUserOwner(commandInfo, &stats, &fileStats);
+  logFileGroupOwner(commandInfo, &stats, &fileStats);
+
+  printf("%10ld %s %02d %02d:%02d ", fileStats.size, fileStats.modificationMonth, fileStats.modificationDay, 
       fileStats.modificationHour, fileStats.modificationMinutes);
 
   freeFileStats(&fileStats);
@@ -213,10 +228,8 @@ void logInfoAboutFile(struct executedCommand* commandInfo, struct dirent* pDirEn
   if(commandInfo->optionsNum > 0) {
     char* pathToFile = createPathToFile(pDirEnt->d_name, pathToParentDir);
 
-    if(doesStringContainChar(commandInfo->options, 'n'))
-      logDetailedInfoAboutFile(pDirEnt, pathToFile, true);
-    else if(doesStringContainChar(commandInfo->options, 'l'))
-      logDetailedInfoAboutFile(pDirEnt, pathToFile, false);
+    if(doesStringContainChar(commandInfo->options, 'n') || doesStringContainChar(commandInfo->options, 'l'))
+      logDetailedInfoAboutFile(commandInfo, pDirEnt, pathToFile);
 
   }
 
