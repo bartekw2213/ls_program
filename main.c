@@ -200,17 +200,25 @@ void logContentIfThisFileIsDirectory(struct executedCommand* commandInfo, struct
   struct stat stats;
   stat(pathToFile, &stats);
   
-  if(S_ISDIR(stats.st_mode) && pathToFile[strlen(pathToFile) - 1] != '.')
+  if(S_ISDIR(stats.st_mode))
     logDirectoryContent(commandInfo, pathToFile);
 }
 
 void logInfoAboutFile(struct executedCommand* commandInfo, struct dirent* pDirEnt) {
-  if(strcmp(pDirEnt->d_name, ".") == 0 || strcmp(pDirEnt->d_name, "..") == 0)
-    return;
-
   if(commandInfo->optionsNum > 0 && doesStringContainChar(commandInfo->options, 'l'))
     logDetailedInfoAboutFile(pDirEnt);
   printf("%s\n", pDirEnt->d_name);
+}
+
+bool shouldFileBeProcessed(struct executedCommand* commandInfo, char* fileName) {
+  if(strcmp(fileName, ".") == 0 || strcmp(fileName, "..") == 0)
+    return false;
+  else if(fileName[0] == '.' && commandInfo->optionsNum == 0)
+    return false;
+  else if(fileName[0] == '.' && commandInfo->optionsNum > 0 && !doesStringContainChar(commandInfo->options, 'a'))
+    return false;
+
+  return true;
 }
 
 void logInfoAboutEachFileInDir(struct executedCommand* commandInfo, DIR **pDirectory) {
@@ -218,7 +226,9 @@ void logInfoAboutEachFileInDir(struct executedCommand* commandInfo, DIR **pDirec
   pDirEnt = readdir( *pDirectory );
 
   while ( pDirEnt != NULL ) {
-    logInfoAboutFile(commandInfo, pDirEnt);
+    if(shouldFileBeProcessed(commandInfo, pDirEnt->d_name))
+      logInfoAboutFile(commandInfo, pDirEnt);
+
     pDirEnt = readdir( *pDirectory );
   }
 
@@ -233,7 +243,9 @@ void logNestedDirectoriesContentIfNeeded(struct executedCommand* commandInfo, DI
   pDirEnt = readdir( *pDirectory );
 
   while ( pDirEnt != NULL ) {
-    logContentIfThisFileIsDirectory(commandInfo, pDirEnt, pathToDir);
+    if(shouldFileBeProcessed(commandInfo, pDirEnt->d_name))
+      logContentIfThisFileIsDirectory(commandInfo, pDirEnt, pathToDir);
+
     pDirEnt = readdir( *pDirectory );
   }
 }
