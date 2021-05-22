@@ -171,11 +171,11 @@ void freeFileStats(struct myFileStats* fileStats) {
   free(fileStats->groupOwner);
 }
 
-void logDetailedInfoAboutFile(struct dirent* pDirEnt) {
+void logDetailedInfoAboutFile(struct dirent* pDirEnt, char* pathToFile) {
   struct stat stats;
   struct myFileStats fileStats;
 
-  stat(pDirEnt->d_name, &stats);
+  stat(pathToFile, &stats);
   convertStatsAboutFile(&stats, &fileStats);
 
   printf("%s %8u %10s %10s %10ld %s %02d %02d:%02d ", fileStats.permissions, fileStats.links, fileStats.userOwner, 
@@ -204,9 +204,11 @@ void logContentIfThisFileIsDirectory(struct executedCommand* commandInfo, struct
     logDirectoryContent(commandInfo, pathToFile);
 }
 
-void logInfoAboutFile(struct executedCommand* commandInfo, struct dirent* pDirEnt) {
-  if(commandInfo->optionsNum > 0 && doesStringContainChar(commandInfo->options, 'l'))
-    logDetailedInfoAboutFile(pDirEnt);
+void logInfoAboutFile(struct executedCommand* commandInfo, struct dirent* pDirEnt, char* pathToParentDir) {
+  if(commandInfo->optionsNum > 0 && doesStringContainChar(commandInfo->options, 'l')) {
+    char* pathToFile = createPathToFile(pDirEnt->d_name, pathToParentDir);
+    logDetailedInfoAboutFile(pDirEnt, pathToFile);
+  }
   printf("%s\n", pDirEnt->d_name);
 }
 
@@ -221,13 +223,13 @@ bool shouldFileBeProcessed(struct executedCommand* commandInfo, char* fileName) 
   return true;
 }
 
-void logInfoAboutEachFileInDir(struct executedCommand* commandInfo, DIR **pDirectory) {
+void logInfoAboutEachFileInDir(struct executedCommand* commandInfo, DIR **pDirectory, char* pathToDir) {
   struct dirent *pDirEnt;
   pDirEnt = readdir( *pDirectory );
 
   while ( pDirEnt != NULL ) {
     if(shouldFileBeProcessed(commandInfo, pDirEnt->d_name))
-      logInfoAboutFile(commandInfo, pDirEnt);
+      logInfoAboutFile(commandInfo, pDirEnt, pathToDir);
 
     pDirEnt = readdir( *pDirectory );
   }
@@ -255,7 +257,7 @@ void logDirectoryContent(struct executedCommand* commandInfo, char* pathToDir) {
 
   openCorrectDirectory(&pDirectory, pathToDir);
   logDirectoryName(pathToDir);
-  logInfoAboutEachFileInDir(commandInfo, &pDirectory);
+  logInfoAboutEachFileInDir(commandInfo, &pDirectory, pathToDir);
   closedir(pDirectory);
 
   openCorrectDirectory(&pDirectory, pathToDir);
