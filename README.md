@@ -18,7 +18,7 @@ gcc main.c -o main.out -lbsd
 ### How to use it? :electric_plug:
 
 ```bash
-./ls.out								# show files in the current directory
+./ls.out							# show files in the current directory
 ./ls.out <path>							# show files in specified directory
 ./ls.out -a <path>						# show all files including hidden one
 ./ls.out -l <path>						# show files with long listing format
